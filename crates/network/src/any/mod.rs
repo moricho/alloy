@@ -106,4 +106,8 @@ impl TransactionResponse for WithOtherFields<Transaction> {
     fn gas(&self) -> u128 {
         self.gas
     }
+
+    fn input(&self) -> &alloy_primitives::Bytes {
+        &self.input
+    }
 }
