@@ -202,57 +202,6 @@ impl Header {
         self.transactions_root == EMPTY_ROOT_HASH
     }
 
-    /// Returns the blob fee for _this_ block according to the EIP-4844 spec.
-    ///
-    /// Returns `None` if `excess_blob_gas` is None
-    pub fn blob_fee(&self) -> Option<u128> {
-        self.excess_blob_gas.map(calc_blob_gasprice)
-    }
-
-    /// Returns the blob fee for the next block according to the EIP-4844 spec.
-    ///
-    /// Returns `None` if `excess_blob_gas` is None.
-    ///
-    /// See also [Self::next_block_excess_blob_gas]
-    pub fn next_block_blob_fee(&self) -> Option<u128> {
-        Some(eip4844::calc_blob_gasprice(self.next_block_excess_blob_gas()?))
-    }
-
-    /// Calculate base fee for next block according to the EIP-1559 spec.
-    ///
-    /// Returns a `None` if no base fee is set, no EIP-1559 support
-    pub fn next_block_base_fee(&self, base_fee_params: BaseFeeParams) -> Option<u64> {
-        Some(calc_next_block_base_fee(
-            self.gas_used,
-            self.gas_limit,
-            self.base_fee_per_gas?,
-            base_fee_params,
-        ))
-    }
-
-    /// Calculate excess blob gas for the next block according to the EIP-4844
-    /// spec.
-    ///
-    /// If [`Self::target_blobs_per_block`] is [`Some`], uses EIP-7742 formula for calculating
-    /// the excess blob gas, otherwise uses EIP-4844 formula.
-    ///
-    /// Returns a `None` if no excess blob gas is set, no EIP-4844 support
-    pub fn next_block_excess_blob_gas(&self) -> Option<u64> {
-        let excess_blob_gas = self.excess_blob_gas?;
-        let blob_gas_used = self.blob_gas_used?;
-
-        Some(self.target_blobs_per_block.map_or_else(
-            || eip4844::calc_excess_blob_gas(excess_blob_gas, blob_gas_used),
-            |target_blobs_per_block| {
-                eip7742::calc_excess_blob_gas(
-                    excess_blob_gas,
-                    blob_gas_used,
-                    target_blobs_per_block,
-                )
-            },
-        ))
-    }
-
     /// Calculate a heuristic for the in-memory size of the [Header].
     #[inline]
     pub fn size(&self) -> usize {
@@ -330,13 +279,6 @@ impl Header {
         }
 
         length
-    }
-
-    /// Returns the parent block's number and hash
-    ///
-    /// Note: for the genesis block the parent number is 0 and the parent hash is the zero hash.
-    pub const fn parent_num_hash(&self) -> BlockNumHash {
-        BlockNumHash { number: self.number.saturating_sub(1), hash: self.parent_hash }
     }
 
     /// Returns the block's number and hash.
